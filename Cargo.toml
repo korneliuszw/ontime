@@ -1,5 +1,5 @@
 [package]
-name = "executiontime"
+name = "ontime"
 version = "0.1.0"
 authors = ["korneliuszw <27420848+korneliuszw@users.noreply.github.com>"]
 edition = "2018"
