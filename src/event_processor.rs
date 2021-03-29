@@ -1,15 +1,17 @@
 use crate::config;
 use crate::event::{Event, ExecutionType};
 use crate::CONFIG;
-use std::cell::RefCell;
+use crate::errors::ExecutionError;
+use std::{any::Any, borrow::Borrow, cell::RefCell};
 use std::fs::OpenOptions;
-use std::io::{stderr, stdout};
+use std::io::stderr;
 use std::os::unix::io::AsRawFd;
 use std::rc::Rc;
 use std::{
     os::unix::prelude::FromRawFd,
     process::{Command, Stdio},
 };
+use std::os::unix::process::ExitStatusExt;
 pub fn process_event(
     event: Rc<RefCell<Event>>,
     execution_type: &ExecutionType,
@@ -20,16 +22,35 @@ pub fn process_event(
         match execution_type {
             ExecutionType::START => {
                 event.executed = (true, event.executed.1);
-                return execute(event.execute_start.as_str());
-            }
+                let result = execute(event.execute_start.as_str());
+                if let Err(x) = result {
+                    if x.type_id() == ExecutionError.type_id() && (CONFIG.fail & config::FAIL_RETRY ) > 0 {
+                        debug!("OK");
+                        event.executed = (false, event.executed.1);
+                    }
+                }
+                return result;
+            },
             ExecutionType::END => {
                 event.executed = (event.executed.0, true);
-                return execute(event.execute_end.as_str());
-            }
+                let result = execute(event.execute_end.as_str());
+                if let Err(x) = result {
+                    if x.is::<ExecutionError>() && (CONFIG.fail & config::FAIL_RETRY ) > 0 {
+                        debug!("OK");
+                        event.executed = (event.executed.0, false);
+                    }
+                }
+                return result;
+            },
+            ExecutionType::LOOP => {
+                if let Some(during) = &event.during {
+                    return execute(during.as_str());
+                }
+                return Ok(());
+            },
             _ => return Ok(()),
         };
     }
-}
 pub fn execute(what: &str) -> Result<(), Box<dyn std::error::Error>> {
     let mut split = what.split(" ");
     let mut builder = Command::new(split.next().unwrap());
@@ -43,6 +64,13 @@ pub fn execute(what: &str) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     let output = builder.spawn()?.wait_with_output()?;
+    let code = output.status.code().unwrap();
+    if code > CONFIG.fail_on_code {
+        error!("Execution failed with code {}", code);
+        // TODO: Implement behaviour
+        let err = ExecutionError {};
+        return Err(err.into())
+    }
     Ok(())
 }
 fn pipe_to() -> Result<Stdio, Box<dyn std::error::Error>> {

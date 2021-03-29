@@ -16,7 +16,7 @@ pub struct Config {
         short,
         long,
         default_value = "0",
-        about = "Flags specyfing behaviour when execution fails, 0 - nothing changes, 1 - retry on a next check, 2 - don't write to the cache"
+        about = "Flags specyfing behaviour when execution fails, 0 - nothing changes, 1 - retry on a next check"
     )]
     pub fail: u32,
     #[clap(
@@ -24,7 +24,7 @@ pub struct Config {
         default_value = "1",
         about = "Every return code greater than or equal this argument will be considered failed"
     )]
-    pub fail_on_code: u32,
+    pub fail_on_code: i32,
     #[clap(
         short,
         long,
@@ -46,7 +46,6 @@ pub struct Config {
 }
 pub const FAIL_REGULAR : u32 = 0x0;
 pub const FAIL_RETRY : u32 = 0x1;
-pub const FAIL_DO_NOT_WRITE : u32 = 0x2;
 pub const PIPE_FROM_NONE : u32 = 0x0;
 pub const PIPE_FROM_STDOUT : u32 = 0x1;
 pub const PIPE_FROM_STDERR : u32 = 0x2;

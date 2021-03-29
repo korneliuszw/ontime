@@ -14,6 +14,8 @@ pub struct Event {
     pub execute_start: String,
     // Execute on end
     pub execute_end: String,
+    // Run the given string every minute, starting from start (+1) until end (-1) is reached
+    pub during: Option<String>,
     pub executed: (bool, bool),
     pub checksum: Option<String>,
 }
@@ -39,7 +41,7 @@ impl Event {
                 .to_owned()
                 .into_string()
                 .ok_or(RequiredAttributeMissingError::new("execute_start", weekday))?,
-
+            during: yaml_object["during"].to_owned().into_string(),
             execute_end: yaml_object["execute_end"]
                 .to_owned()
                 .into_string()
@@ -52,11 +54,13 @@ impl Event {
     /// Sets self.checksum to calculated checksum, in hexadecimal string format
     /// Used to later compare with cache
     pub fn calculate_checksum(&mut self) {
+        dbg!(&self);
         let self_string = self.to_string();
         self.checksum = Some(format!("{:x}", md5::compute(self_string)));
     }
     /// Compares current time with times of start and end of an event
     /// Returns ExecutionType::NONE if it isn't the right time or execution had been issued previously
+    /// Returns ExeuctionType::LOOP if the event have started, haven't end yet and during field is specified.
     /// Else returns ExecutionType::START or ExecutionType::END depending on the time
     pub fn should_execute(&self, time_now: &i64) -> ExecutionType {
         let distance_start = self.start.to_owned()
@@ -72,15 +76,27 @@ impl Event {
                 .unwrap()
                 * 60);
         if !self.executed.0 && &self.start <= time_now && &distance_start >= time_now {
-            debug!("Executing start script {}", self.execute_start);
+            debug!(
+                "Executing start script (timestamp {}): {}",
+                &time_now, self.execute_start
+            );
             return ExecutionType::START;
         } else if self.executed.0
             && !self.executed.1
             && &self.end <= time_now
             && &distance_end >= time_now
         {
-            debug!("Executing end script {}", self.execute_end);
+            debug!(
+                "Executing end script (timestamp {}): {}",
+                &time_now, self.execute_end
+            );
             return ExecutionType::END;
+        } else if self.executed.0
+            && !self.executed.1
+            && &self.end > time_now
+            && self.during.is_some()
+        {
+            return ExecutionType::LOOP;
         }
         ExecutionType::NONE
     }
@@ -132,5 +148,6 @@ pub fn parse_time(time: &str, weekday: &str) -> Result<i64, Box<dyn std::error::
 pub enum ExecutionType {
     START,
     END,
+    LOOP,
     NONE,
 }

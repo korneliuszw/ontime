@@ -76,8 +76,13 @@ fn time_loop(conf_files: &Vec<path::PathBuf>) -> Result<(), Box<dyn std::error::
             let execution = current.value.borrow().should_execute(&now.timestamp());
             match execution {
                 ExecutionType::NONE => {}
+                ExecutionType::LOOP => {
+                    process_event(
+                        Rc::clone(&current.value),
+                        &execution,
+                    )?
+                }
                 _ => {
-                    changed = true;
                     process_event(
                         Rc::clone(&current.value),
                         &execution,
