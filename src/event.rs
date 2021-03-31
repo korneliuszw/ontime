@@ -53,7 +53,6 @@ impl Event {
     /// Sets self.checksum to calculated checksum, in hexadecimal string format
     /// Used to later compare with cache
     pub fn calculate_checksum(&mut self) {
-        dbg!(&self);
         let self_string = self.to_string();
         self.checksum = Some(format!("{:x}", md5::compute(self_string)));
     }

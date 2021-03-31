@@ -52,9 +52,9 @@ fn real_main() -> Result<(), Box<dyn std::error::Error>> {
     let dir_content = read_env_dir_or_fallback_to_etc(
         "XDG_CONFIG_HOME",
         APP_NAME,
-        true,
         Some(filter_dir_content),
     )?;
+    debug!("Found files: {:?}", dir_content);
     time_loop(&dir_content)?;
     return Ok(());
 }

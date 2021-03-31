@@ -1,70 +1,81 @@
-use std::{borrow::Borrow, env};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use std::{borrow::Borrow, env};
 
 pub fn read_env_dir_or_fallback_to_etc<T>(
     env_var: &str,
     dir: &str,
-    fallback_on_empty: bool,
     filter: Option<T>,
 ) -> Result<Vec<PathBuf>, Box<dyn std::error::Error>>
 where
     T: Fn(fs::ReadDir) -> Vec<PathBuf>,
 {
-    let mut env_path = PathBuf::from(env::var(env_var)?);
-    env_path.push(dir);
-    let mut read_etc = !env_path.exists();
     let mut dir_content_wide: Option<Vec<PathBuf>> = None;
-    if !read_etc {
-        debug!("Looking up {:?}", env_path);
-        let dir_content_all = fs::read_dir(&env_path)?;
-        let dir_content = match filter.borrow() {
-            Some(f) => f.to_owned()(dir_content_all),
-            None => read_dir_to_pathbuf(dir_content_all),
-        };
-        if dir_content.len() == 0 {
-            if fallback_on_empty {
-                debug!("No yaml files found!");
-                read_etc = true;
-            } else {
-                return Ok(vec![env_path]);
-            }
+    let found: bool = match env::var(env_var) {
+        Ok(x) => {
+            // Use closure to return booleans that will then be returned by match
+            // Normally, return statement inside match referes to a whole function
+            let closure = || {
+                let mut env_path = PathBuf::from(x);
+                env_path.push(dir);
+                if !env_path.exists() {
+                    return false;
+                };
+                debug!("Looking up {:?}", env_path);
+                let dir_content_all = fs::read_dir(env_path).unwrap();
+                let dir_content = match filter.borrow() {
+                    Some(f) => f(dir_content_all),
+                    None => read_dir_to_pathbuf(dir_content_all),
+                };
+                if dir_content.len() == 0 {
+                    debug!("No yaml files found!");
+                    return false;
+                }
+                dir_content_wide = Some(dir_content);
+                true
+            };
+            closure()
         }
-        dir_content_wide = Some(dir_content);
-    }
-    if read_etc {
+        _ => false,
+    };
+    if !found {
         debug!("Looking up /etc/ontime/");
-        let etc_path = Path::new("/etc/ontime/");
+        let etc_path = PathBuf::from("/etc/ontime/");
         if !etc_path.exists() {
             return Err("No configuration folder, make sure you have ontime/ directory in either /etc/ or XDG_CONFIG_HOME".into());
         }
-        let dir_content_all = fs::read_dir(&env_path)?;
+        let dir_content_all = fs::read_dir(&etc_path)?;
         let dir_content = match filter {
             Some(f) => f(dir_content_all),
             None => read_dir_to_pathbuf(dir_content_all),
         };
         if dir_content.len() == 0 {
-            if !fallback_on_empty {
-                return Ok(vec![env_path]);
-            }
             return Err("No yaml files found in /etc/ontime".into());
         }
         dir_content_wide = Some(dir_content);
     }
     Ok(dir_content_wide.unwrap())
 }
-fn read_dir_to_pathbuf(
-    dir_content: fs::ReadDir,
-) -> Vec<PathBuf> {
-    dir_content.into_iter().map(|item| item.unwrap().path()).collect()
+fn read_dir_to_pathbuf(dir_content: fs::ReadDir) -> Vec<PathBuf> {
+    dir_content
+        .into_iter()
+        .map(|item| item.unwrap().path())
+        .collect()
 }
 pub fn find_env_dir_or_etc(
     env_var: &str,
     dir: &str,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
-    let mut path = PathBuf::from(env::var(env_var)?);
-    path.push(dir);
-    if !path.exists() {
+    let mut path = PathBuf::new();
+    let found: bool = match env::var(env_var) {
+        Ok(x) => {
+            path.push(x);
+            path.push(dir);
+            path.exists()
+        }
+        _ => false,
+    };
+    if !found {
         path = PathBuf::from("/etc/");
         path.push(dir);
     }
