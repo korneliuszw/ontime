@@ -1,12 +1,9 @@
 use crate::directory::find_env_dir_or_etc;
 use crate::event::Event;
 use crate::event_list::List;
-use crate::APP_NAME;
 use chrono::NaiveDate;
-use std::cell::RefCell;
 use std::fs;
 use std::io::{self, BufRead, Seek, Write};
-use std::rc::Rc;
 const CACHE_FILE_NAME: &'static str = "ontime.cache";
 
 /// Struct holding variables responsible for reading through cache

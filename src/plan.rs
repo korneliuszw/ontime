@@ -1,16 +1,12 @@
 use crate::errors;
 use crate::event::Event;
 use crate::event_cache::Cache;
-use crate::event_list::{EventList, List, ListElement};
+use crate::event_list::{EventList, ListElement};
 use crate::weekday::chrono_to_string;
 use chrono::Datelike;
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::{
-    borrow::{Borrow, Cow},
-    cell::RefCell,
-    rc::Rc,
-};
+use std::borrow::{Borrow, Cow};
 use yaml_rust::YamlLoader;
 #[derive(Debug)]
 pub struct Plan {

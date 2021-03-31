@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use chrono::Duration;
 use clap::Clap;
 
 #[derive(Clap, Debug)]
@@ -44,7 +43,6 @@ pub struct Config {
     )]
     pub file: Option<PathBuf>,
 }
-pub const FAIL_REGULAR : u32 = 0x0;
 pub const FAIL_RETRY : u32 = 0x1;
 pub const PIPE_FROM_NONE : u32 = 0x0;
 pub const PIPE_FROM_STDOUT : u32 = 0x1;
@@ -68,11 +66,4 @@ impl std::str::FromStr for PipeTo {
             _ => Err("Value not allowed".into()),
         }
     }
-}
-fn time_to_duration(time: &str) -> Result<Duration, String> {
-    let time = match time.parse::<i64>() {
-        Ok(x) => x,
-        Err(_) => return Err("Argument for parameter distance must be an integer".into()),
-    };
-    Ok(Duration::minutes(time))
 }

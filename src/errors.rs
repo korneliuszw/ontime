@@ -1,26 +1,6 @@
 use std::borrow::Cow;
 use std::error;
 use std::fmt;
-use std::path::PathBuf;
-#[derive(Debug, Clone)]
-
-pub struct FileNotFoundError<'a> {
-    path: &'a PathBuf,
-}
-
-impl fmt::Display for FileNotFoundError<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Couldn't read file {}", self.path.to_str().unwrap())
-    }
-}
-impl error::Error for FileNotFoundError<'_> {}
-
-impl<'a> FileNotFoundError<'a> {
-    pub fn new(path: &'a PathBuf) -> Self {
-        Self { path }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct PlanNotFoundError {
     weekday: Cow<'static, str>,

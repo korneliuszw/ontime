@@ -23,7 +23,6 @@ use crate::event_processor::process_event;
 use chrono::{offset::Local, Datelike};
 use clap::Clap;
 use std::path;
-use std::rc::Rc;
 use std::time::Duration;
 use weekday::chrono_to_string;
 

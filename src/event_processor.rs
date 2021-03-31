@@ -5,9 +5,9 @@ use crate::CONFIG;
 use std::fs::OpenOptions;
 use std::io::stderr;
 use std::os::unix::io::AsRawFd;
+// According to docs Child::output.status() requires this trait to import to return signals as well
+#[allow(unused_imports)]
 use std::os::unix::process::ExitStatusExt;
-use std::rc::Rc;
-use std::{any::Any, borrow::Borrow, cell::RefCell};
 use std::{
     os::unix::prelude::FromRawFd,
     process::{Command, Stdio},
