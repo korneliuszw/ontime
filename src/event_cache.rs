@@ -81,13 +81,13 @@ impl Cache {
             let mut current_link = event_list.head.as_mut();
             while let Some(item) = current_link {
                 let mut equal = false;
-                if let Some(x) = &item.value.borrow().checksum {
+                if let Some(x) = &item.value.checksum {
                     if x.as_str() == checksum {
                         equal = true;
                     }
                 }
                 if equal {
-                    item.value.borrow_mut().executed = (executed_start, executed_end);
+                    item.value.executed = (executed_start, executed_end);
                 }
                 current_link = item.next_mut();
             }
@@ -102,14 +102,13 @@ impl Cache {
         self.descriptor.set_len(0)?;
         self.descriptor.seek(io::SeekFrom::Start(0))?;
         while let Some(item) = current_link {
-            let borrow = item.value.borrow();
-            if let Some(x) = &borrow.checksum {
+            if let Some(x) = &item.value.checksum {
                 to_write.push_str(&format!(
                     "{} {} {}\n",
-                    x, borrow.executed.0, borrow.executed.1
+                    x, &item.value.executed.0, &item.value.executed.1
                 ));
             }
-            current_link = item.next();
+            current_link = item.next_ref();
         }
         let mut writer = io::LineWriter::new(&self.descriptor);
         writer.write_all(to_write.as_bytes())

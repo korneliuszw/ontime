@@ -1,9 +1,8 @@
 use crate::errors::{BadTimeFormat, RequiredAttributeMissingError};
 use crate::CONFIG;
-use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+use chrono::{NaiveDateTime, NaiveTime};
 use std::borrow::Cow;
 use std::cmp::Ordering;
-use std::path::PathBuf;
 use yaml_rust::Yaml;
 
 #[derive(Debug, Clone, Eq)]
@@ -99,6 +98,9 @@ impl Event {
             return ExecutionType::LOOP;
         }
         ExecutionType::NONE
+    }
+    pub fn should_reschedule(&self) -> bool {
+        self.executed.0 && !self.executed.1
     }
 }
 impl ToString for Event {

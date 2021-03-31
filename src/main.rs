@@ -60,11 +60,11 @@ fn real_main() -> Result<(), Box<dyn std::error::Error>> {
     return Ok(());
 }
 fn time_loop(conf_files: &Vec<path::PathBuf>) -> Result<(), Box<dyn std::error::Error>> {
-    let mut plan = plan::get_plan(&Local::now(), conf_files)?;
+    let mut plan = plan::get_plan(&Local::now(), conf_files, None)?;
     loop {
         let now = Local::now();
         if plan.weekday != chrono_to_string(&now.weekday()) {
-            plan = plan::get_plan(&now, conf_files)?;
+            plan = plan::get_plan(&now, conf_files, Some(plan))?;
         }
         if plan.events.head.is_none() {
             std::thread::sleep(Duration::from_secs(60));
@@ -73,19 +73,20 @@ fn time_loop(conf_files: &Vec<path::PathBuf>) -> Result<(), Box<dyn std::error::
         let mut changed = false;
         // Iterate until there are no more elements (links) in the list
         while let Some(current) = current_link {
-            let execution = current.value.borrow().should_execute(&now.timestamp());
+            let execution = &current.value.should_execute(&now.timestamp());
             match execution {
                 ExecutionType::NONE => {}
                 ExecutionType::LOOP => {
                     process_event(
-                        Rc::clone(&current.value),
+                        &mut current.value,
                         &execution,
                     )?
                 }
                 _ => {
+                    changed = true;
                     process_event(
-                        Rc::clone(&current.value),
-                        &execution,
+                        &mut current.value,
+                       &execution,
                     )?
                 }
             }

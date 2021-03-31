@@ -1,13 +1,17 @@
 use crate::errors;
 use crate::event::Event;
+use crate::event_cache::Cache;
 use crate::event_list::{EventList, List, ListElement};
 use crate::weekday::chrono_to_string;
-use std::borrow::{Borrow, Cow};
+use chrono::Datelike;
 use std::ops::Deref;
 use std::path::PathBuf;
-use chrono::Datelike;
+use std::{
+    borrow::{Borrow, Cow},
+    cell::RefCell,
+    rc::Rc,
+};
 use yaml_rust::YamlLoader;
-use crate::event_cache::Cache;
 #[derive(Debug)]
 pub struct Plan {
     pub weekday: Cow<'static, str>,
@@ -19,6 +23,7 @@ pub struct Plan {
 pub fn get_plan(
     time_now: &chrono::DateTime<chrono::Local>,
     conf_files: &Vec<PathBuf>,
+    previous_plan: Option<Plan>,
 ) -> Result<Plan, Box<dyn std::error::Error>> {
     let str_weekday = chrono_to_string(&time_now.weekday());
     // TODO: Move to a helper function
@@ -63,6 +68,13 @@ pub fn get_plan(
             Ok(event)
         })
         .collect::<Result<Vec<Event>, _>>()?;
+    if let Some(previous) = previous_plan {
+        let mut vec = previous
+            .events
+            .into_iter()
+            .filter(|element| element.should_reschedule()).collect::<Vec<Event>>();
+        events.append(&mut vec);
+    }
     // Sorts from the first to the last event (by start key)
     events.sort();
     // Reverse the vector
@@ -81,6 +93,6 @@ pub fn get_plan(
     return Ok(Plan {
         weekday: str_weekday,
         events: list,
-        cache
+        cache,
     });
 }
